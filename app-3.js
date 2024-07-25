@@ -1,6 +1,5 @@
 const express = require("express");
-const mysql = require("mysql2");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const bodyParser = require("body-parser");
 
 const db = require("./config/db");
@@ -11,68 +10,72 @@ const port = 3000;
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+
+
 // Signup route
-app.post("/signup", (req, res) => {
+app.post("/signup", async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).send("Username and password are required.");
   }
 
-  // Check if username already exists
-  const checkUserQuery = "SELECT * FROM users WHERE username = ?";
-  db.query(checkUserQuery, [username], (err, results) => {
-    if (err) throw err;
+  try {
+    // Check if username already exists
+    const adminData
 
-    if (results.length > 0) {
+    if (rows.length > 0) {
       return res.status(400).send("Username already exists.");
     }
 
     // Hash the password
-    bcrypt.hash(password, 10, (err, hash) => {
-      if (err) throw err;
+    const hash = await bcrypt.hash(password, 10);
 
-      // Insert user into database
-      const insertUserQuery =
-        "INSERT INTO users (username, password) VALUES (?, ?)";
-      db.query(insertUserQuery, [username, hash], (err, result) => {
-        if (err) throw err;
-        res.status(201).send("User registered successfully.");
-      });
-    });
-  });
+    // Insert user into database
+    await pool.query("INSERT INTO users (username, password) VALUES (?, ?)", [
+      username,
+      hash,
+    ]);
+
+    res.status(201).send("User registered successfully.");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error.");
+  }
 });
 
 // Login route
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
   const { username, password } = req.body;
 
   if (!username || !password) {
     return res.status(400).send("Username and password are required.");
   }
 
-  // Check if user exists
-  const checkUserQuery = "SELECT * FROM users WHERE username = ?";
-  db.query(checkUserQuery, [username], (err, results) => {
-    if (err) throw err;
+  try {
+    // Check if user exists
+    const [rows] = await pool.query("SELECT * FROM users WHERE username = ?", [
+      username,
+    ]);
 
-    if (results.length === 0) {
+    if (rows.length === 0) {
       return res.status(400).send("Invalid username or password.");
     }
 
-    const user = results[0];
+    const user = rows[0];
 
     // Compare the password
-    bcrypt.compare(password, user.password, (err, isMatch) => {
-      if (err) throw err;
+    const isMatch = await bcrypt.compare(password, user.password);
 
-      if (isMatch) {
-        res.status(200).send("Login successful.");
-      } else {
-        res.status(400).send("Invalid username or password.");
-      }
-    });
-  });
+    if (isMatch) {
+      res.status(200).send("Login successful.");
+    } else {
+      res.status(400).send("Invalid username or password.");
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Server error.");
+  }
 });
 
 app.listen(port, () => {

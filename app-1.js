@@ -13,7 +13,7 @@ const sampleData = {
 
 // Function to write data to the file
 function writeDataToFile(data, filePath) {
-  fs.writeFile(filePath, JSON.stringify(data, null, 2), "utf8", (err) => {
+  fs.writeFile(filePath, JSON.stringify(data), (err) => {
     if (err) {
       console.error("Error writing to file:", err);
     } else {
@@ -24,7 +24,7 @@ function writeDataToFile(data, filePath) {
 
 // Function to read data from the file
 function readDataFromFile(filePath) {
-  fs.readFile(filePath, "utf8", (err, data) => {
+  fs.readFile(filePath, (err, data) => {
     if (err) {
       console.error("Error reading from file:", err);
     } else {
